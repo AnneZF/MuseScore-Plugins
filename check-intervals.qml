@@ -102,7 +102,7 @@ MuseScore {
 		}
 		if (mode === 0) {
 			if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "-m6"))
-				output = '<b> + output + '</b>';
+				output = '<b>' + output + '</b>';
 		}
 		if (mode === 1) {
 			if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
