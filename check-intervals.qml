@@ -7,19 +7,19 @@ import QtQuick.Dialogs 1.1
 
 MuseScore {
 	menuPath: "Plugins.checkIntervals"
-    version: "1.0"
-    description: "Check melodic & harmonic intervals"
-    pluginType: "dock"
-
-    width: 100
-    height: 100
-
-    onRun: {
-        if (!curScore) {
-            error("No score open.\nThis plugin requires an open score to run.\n");
+	version: "1.0"
+	description: "Check melodic & harmonic intervals"
+	pluginType: "dock"
+	
+	width: 100
+	height: 100
+	
+	onRun: {
+		if (!curScore) {
+			error("No score open.\nThis plugin requires an open score to run.\n");
 			Qt.quit();
-        }
-    }
+		}
+	}
 	
 	function applyIntervals() {
 		var selection = getSelection();
@@ -36,21 +36,19 @@ MuseScore {
 	
 	function clear(tick) {
 		if (curScore) {
-            if (curScore.selection && curScore.selection.elements) {
-                for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
+			if (curScore.selection && curScore.selection.elements) {
+				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
 					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT)&& curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
 						removeElement(curScore.selection.elements[eCount]);
-				}					
-            }
+				}
+			}
 		}
 	}
 	
 	function check(selection) {		
 		selection.cursor.rewind(1);
 		var notes = new Array(selection.endTrack);
-		for (var track = selection.startTrack; track < selection.endTrack; track++) {
-			notes[track] = null;
-		}
+		for (var track = selection.startTrack; track < selection.endTrack; track++) notes[track] = null;
 		var segment = selection.cursor.segment;
 		while (segment && segment.tick < selection.endTick) {			
 			var thisTrack = null;
@@ -102,8 +100,13 @@ MuseScore {
 			if (interval < -8 || interval > 12) return "!";
 			var output = "-" + intMap[interval + 8];			
 		}
+		if (mode === 0) {
+			if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "-m6"))
+				output = '<b> + output + '</b>';
+		}
 		if (mode === 1) {
-			if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6")) output = '<b>' + output + '</b>';
+			if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
+				output = '<b>' + output + '</b>';
 		}
 		return output;
 	}
@@ -135,44 +138,42 @@ MuseScore {
 	}
 	
 	function error(errorMessage) {
-        errorDialog.text = qsTr(errorMessage);
-        errorDialog.open();
-    }
+		errorDialog.text = qsTr(errorMessage);
+        	errorDialog.open();
+	}
     
 	Rectangle {
-        color: "transparent";
-        anchors.fill: parent;
-		Text {
-			text: "Check Intervals";
-		}
-        GridLayout {
-            columns: 2;
-            anchors.fill: parent;
-            anchors.margins: 10;
-            Button {
-                id: applyButton;
-                text: qsTranslate("PrefsDialogBase", "Apply");
-                onClicked: {
-                    applyIntervals();
-                }
-            }
-            Button {
-                id: cancelButton;
-                text: qsTranslate("PrefsDialogBase", "Cancel");
-                onClicked: {
-                    Qt.quit();
-                }
-            }
-        }
-    }
-
-    MessageDialog {
-        id: errorDialog;
-        title: "Error";
-        text: "";
-        onAccepted: {
-            errorDialog.close();
-        }
-        visible: false;
-    }
+        	color: "transparent";
+        	anchors.fill: parent;
+        	
+		GridLayout {
+            		columns: 2;
+            		anchors.fill: parent;
+            		anchors.margins: 10;
+            		Button {
+                		id: applyButton;
+                		text: qsTranslate("PrefsDialogBase", "Apply");
+                		onClicked: {
+                    			applyIntervals();
+                		}
+			}
+            		Button {
+                		id: cancelButton;
+                		text: qsTranslate("PrefsDialogBase", "Cancel");
+                		onClicked: {
+                    			Qt.quit();
+                		}
+            		}
+        	}
+    	}
+	
+	MessageDialog {
+        	id: errorDialog;
+        	title: "Error";
+        	text: "";
+        	onAccepted: {
+            		errorDialog.close();
+        	}
+        	visible: false;
+    	}
 }
