@@ -86,23 +86,23 @@ MuseScore {
 			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1--){
 				if (notes[track1] != null) {
 					var text = newElement(Element.SYSTEM_TEXT);
-					text.visible = false;
 					for (var track2 = track1 - 1; track2 >= selection.startTrack; track2--) {
 						if (notes[track2] != null) {
 							var toAdd = returnInterval(notes[track1], notes[track2], 1);
-							if (firstBass && toAdd[0] === '<') text.visible = true;
+							if (toAdd[0] === '<') text.color = "red";
 							if (toAdd[toAdd.length - 1] === '5') has5 = true;
 							if (toAdd[toAdd.length - 1] === '6') has6 = true;
 							text.text = toAdd + "\n" + text.text;
 						}
 					}
 					if (text.text != "") {
-						if (firstBass && has5 && has6) text.visible = true;
+						if (has5 && has6) text.color = "red";
+						if (!firstBass) text.visible = false;
 						selection.cursor.track = thisTrack;
 						selection.cursor.rewindToTick(segment.tick);
-						selection.cursor.add(text);
-						firstBass = false;						
+						selection.cursor.add(text);			
 					}
+					firstBass = false;			
 				}
 			}			
 			while (segment.next.tick == segment.next.next.tick) segment = segment.next;
