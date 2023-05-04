@@ -64,8 +64,9 @@ MuseScore {
 					if (element.type === Element.CHORD) {
 						if (notes[track] != null) {
 							var text = newElement(Element.FINGERING);
+							text.visible = false;
 							text.text = returnInterval(notes[track], element.notes[0], 0);
-							if (text.text[0] === '<') text.color = "red";
+							if (text.text[0] === '<') text.visible = true;
 							selection.cursor.track = track;
 							selection.cursor.rewindToTick(segment.tick);
 							selection.cursor.add(text);
@@ -82,20 +83,21 @@ MuseScore {
 			var firstBass = true;
 			var has5 = false;
 			var has6 = false;
-			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1 --){
+			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1--){
 				if (notes[track1] != null) {
 					var text = newElement(Element.SYSTEM_TEXT);
+					text.visible = false;
 					for (var track2 = track1 - 1; track2 >= selection.startTrack; track2--) {
 						if (notes[track2] != null) {
 							var toAdd = returnInterval(notes[track1], notes[track2], 1);
-							if (firstBass && toAdd[0] === '<') text.color = "red";
+							if (firstBass && toAdd[0] === '<') text.visible = true;
 							if (toAdd[toAdd.length - 1] === '5') has5 = true;
 							if (toAdd[toAdd.length - 1] === '6') has6 = true;
 							text.text = toAdd + "\n" + text.text;
 						}
 					}
 					if (text.text != "") {
-						if (firstBass && has5 && has6) text.color = "red";
+						if (firstBass && has5 && has6) text.visible = true;
 						selection.cursor.track = thisTrack;
 						selection.cursor.rewindToTick(segment.tick);
 						selection.cursor.add(text);
@@ -122,11 +124,11 @@ MuseScore {
 		}
 		if (mode === 0) {
 			if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
-				output = '<b>' + output + '</b>';
+				output = "<b>" + output + "</b>";
 		}
 		if (mode === 1) {
 			if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
-				output = '<b>' + output + '</b>';
+				output = "<b>" + output + "</b>";
 		}
 		return output;
 	}
