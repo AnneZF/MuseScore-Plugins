@@ -44,7 +44,7 @@ MuseScore {
 		if (curScore) {
 			if (curScore.selection && curScore.selection.elements) {
 				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
-					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT) && curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
+					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT || curScore.selection.elements[eCount].type === Element.STAFF_TEXT) && curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
 						removeElement(curScore.selection.elements[eCount]);
 				}
 			}
@@ -80,17 +80,22 @@ MuseScore {
 				}
 			}
 			var firstBass = true;
+			var has5 = false;
+			var has6 = false;
 			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1 --){
 				if (notes[track1] != null) {
 					var text = newElement(Element.SYSTEM_TEXT);
 					for (var track2 = track1 - 1; track2 >= selection.startTrack; track2--) {
 						if (notes[track2] != null) {
-							var toAdd =returnInterval(notes[track1], notes[track2], 1);
+							var toAdd = returnInterval(notes[track1], notes[track2], 1);
 							if (firstBass && toAdd[0] === '<') text.color = "red";
+							if (toAdd[toAdd.length - 1] === '5') has5 = true;
+							if (toAdd[toAdd.length - 1] === '6') has6 = true;
 							text.text = toAdd + "\n" + text.text;
 						}
 					}
 					if (text.text != "") {
+						if (firstBass && has5 && has6) text.color = "red";
 						selection.cursor.track = thisTrack;
 						selection.cursor.rewindToTick(segment.tick);
 						selection.cursor.add(text);
@@ -156,7 +161,7 @@ MuseScore {
 		errorDialog.text = qsTr(errorMessage);
         	errorDialog.open();
 	}
-	
+    	
 	MessageDialog {
         	id: errorDialog;
         	title: "Error";
