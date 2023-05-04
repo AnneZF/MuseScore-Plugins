@@ -6,19 +6,25 @@ import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.1
 
 MuseScore {
-	menuPath: "Plugins.checkIntervals"
-	version: "1.0"
+	menuPath: "Plugins.Proof Reading.Check Intervals"
+	version: "1.1"
 	description: "Check melodic & harmonic intervals"
-	pluginType: "dock"
+	requiresScore: true
 	
-	width: 100
-	height: 100
+	id: checkIntervals
+	
+	Component.onCompleted: {
+		if (mscoreMajorVersion >= 4) {
+			checkIntervals.title = "Check for Counterpoint Intervals";
+			checkIntervals.categoryCode = "composing-arranging-tools";
+		}
+	}
 	
 	onRun: {
 		if (!curScore) {
 			error("No score open.\nThis plugin requires an open score to run.\n");
-			Qt.quit();
 		}
+		else applyIntervals();
 	}
 	
 	function applyIntervals() {
@@ -38,7 +44,7 @@ MuseScore {
 		if (curScore) {
 			if (curScore.selection && curScore.selection.elements) {
 				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
-					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT)&& curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
+					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT) && curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
 						removeElement(curScore.selection.elements[eCount]);
 				}
 			}
@@ -59,6 +65,7 @@ MuseScore {
 						if (notes[track] != null) {
 							var text = newElement(Element.FINGERING);
 							text.text = returnInterval(notes[track], element.notes[0], 0);
+							if (text.text[0] === '<') text.color = "red";
 							selection.cursor.track = track;
 							selection.cursor.rewindToTick(segment.tick);
 							selection.cursor.add(text);
@@ -72,15 +79,23 @@ MuseScore {
 					}
 				}
 			}
+			var firstBass = true;
 			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1 --){
 				if (notes[track1] != null) {
 					var text = newElement(Element.SYSTEM_TEXT);
 					for (var track2 = track1 - 1; track2 >= selection.startTrack; track2--) {
-						if (notes[track2] != null) text.text = returnInterval(notes[track1], notes[track2], 1) + "\n" + text.text;
+						if (notes[track2] != null) {
+							var toAdd =returnInterval(notes[track1], notes[track2], 1);
+							if (firstBass && toAdd[0] === '<') text.color = "red";
+							text.text = toAdd + "\n" + text.text;
+						}
 					}
-					selection.cursor.track = thisTrack;
-					selection.cursor.rewindToTick(segment.tick);
-					selection.cursor.add(text);
+					if (text.text != "") {
+						selection.cursor.track = thisTrack;
+						selection.cursor.rewindToTick(segment.tick);
+						selection.cursor.add(text);
+						firstBass = false;						
+					}
 				}
 			}			
 			while (segment.next.tick == segment.next.next.tick) segment = segment.next;
@@ -141,39 +156,12 @@ MuseScore {
 		errorDialog.text = qsTr(errorMessage);
         	errorDialog.open();
 	}
-    
-	Rectangle {
-        	color: "transparent";
-        	anchors.fill: parent;
-        	
-		GridLayout {
-            		columns: 2;
-            		anchors.fill: parent;
-            		anchors.margins: 10;
-            		Button {
-                		id: applyButton;
-                		text: qsTranslate("PrefsDialogBase", "Apply");
-                		onClicked: {
-                    			applyIntervals();
-                		}
-			}
-            		Button {
-                		id: cancelButton;
-                		text: qsTranslate("PrefsDialogBase", "Cancel");
-                		onClicked: {
-                    			Qt.quit();
-                		}
-            		}
-        	}
-    	}
 	
 	MessageDialog {
         	id: errorDialog;
         	title: "Error";
         	text: "";
-        	onAccepted: {
-            		errorDialog.close();
-        	}
+        	onAccepted: errorDialog.close();
         	visible: false;
     	}
 }
