@@ -22,25 +22,27 @@ MuseScore {
 	
 	onRun: {
 		if (!curScore) {
-			error("No score open.\nThis plugin requires an open score to run.\n");
+			message("Error", "No score open.\nThis plugin requires an open score to run.\n");
 		}
-		else applyIntervals();
+		else {
+			applyIntervals();
+		}
 	}
 	
 	function applyIntervals() {
 		var selection = getSelection();
 		if (!selection) {
-			error("No selection.\nThis plugin requires a current selection to run.\n");
+			message("Error", "getSelection() failed.");
 		}
 		else {			
 			curScore.startCmd();
-			clear(selection.startTick);
-			check(selection);
+			clearMarkings(selection.startTick);
+			analyse(selection);
 			curScore.endCmd();	
 		}
 	}
 	
-	function clear(tick) {
+	function clearMarkings(tick) {
 		if (curScore) {
 			if (curScore.selection && curScore.selection.elements) {
 				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
@@ -51,7 +53,7 @@ MuseScore {
 		}
 	}
 	
-	function check(selection) {		
+	function analyse(selection) {		
 		selection.cursor.rewind(1);
 		var notes = new Array(selection.endTrack);
 		for (var track = selection.startTrack; track < selection.endTrack; track++) notes[track] = null;
@@ -62,6 +64,7 @@ MuseScore {
 				var element = segment.elementAt(track);
 				if (element) {
 					if (element.type === Element.CHORD) {
+						if (element.notes.length > 1) message("Error", "Only one note analysed at track " + track + ", tick " + segment.tick);
 						if (notes[track] != null) {
 							var text = newElement(Element.FINGERING);
 							text.visible = false;
@@ -113,22 +116,24 @@ MuseScore {
 	function returnInterval(note1, note2, mode) {
 		if (note2.pitch > note1.pitch) {
 			var interval = note2.tpc - note1.tpc;
-			if (interval < -8 || interval > 12) return "!";
+			if (interval < -8 || interval > 12) return "<b>!</b>"; //rewrite
 			var output = intMap[interval + 8];
 		}
 		else {
 			if (note2.pitch == note1.pitch && note2.tpc == note1.tpc) return "U";
 			var interval = note1.tpc - note2.tpc;
-			if (interval < -8 || interval > 12) return "!";
+			if (interval < -8 || interval > 12) return "<b>!</b>";
 			var output = "-" + intMap[interval + 8];			
 		}
-		if (mode === 0) {
-			if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
+		switch (mode) {
+			case 0:	if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
 				output = "<b>" + output + "</b>";
-		}
-		if (mode === 1) {
-			if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
+				break;
+			case 1:	if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
 				output = "<b>" + output + "</b>";
+				break;
+			default:	message("Error", "Mode Input Error.\nPermitted Modes:\nmode 0: melodic;\tmode 1: harmonic;");
+				return;
 		}
 		return output;
 	}
@@ -138,37 +143,43 @@ MuseScore {
 	function getSelection() {
 		var cursor = curScore.newCursor();
 		cursor.rewind(1);
-		if (!cursor.segment) return null;
 		var selection = {
 			cursor: cursor,
-			startTick: cursor.segment.parent.firstSegment.tick,
+			startTick: null,
 			endTick: null,
 			startStaff: 0,
 			endStaff: curScore.nstaves,
-			startTrack: null,
-			endTrack: null
+			startTrack: 0,
+			endTrack: curScore.nstaves * 4
+		}		
+		if (!cursor.segment) {
+			message("Warning", "No selection.\nApplied to whole score.");
+			selection.startTick = 0;
+			selection.endTick = curScore.lastSegment.prev.tick + 1;
 		}
-		cursor.rewind(2);
-		if (cursor.tick == 0) selection.endTick = curScore.lastSegment.tick + 1;
-		else selection.endTick = cursor.tick;
-		selection.startTrack = selection.startStaff * 4;
-		selection.endTrack = selection.endStaff * 4;
+		else {
+			selection.startTick = cursor.segment.parent.firstSegment.tick;
+			cursor.rewind(2);
+			if (cursor.tick === 0) selection.endTick = curScore.lastSegment.prev.tick + 1;
+			else selection.endTick = cursor.tick;
+		}		
 		curScore.startCmd();
 		curScore.selection.selectRange(selection.startTick, selection.endTick, selection.startStaff, selection.endStaff);
 		curScore.endCmd();
 		return selection;
 	}
 	
-	function error(errorMessage) {
-		errorDialog.text = qsTr(errorMessage);
-        	errorDialog.open();
+	function message(title, mText) {
+		messageDialog.text = qsTr(mText);
+		messageDialog.title = title;
+		messageDialog.open();
 	}
     	
 	MessageDialog {
-        	id: errorDialog;
-        	title: "Error";
+        	id: messageDialog;
+        	title: "";
         	text: "";
-        	onAccepted: errorDialog.close();
+        	onAccepted: messageDialog.close();
         	visible: false;
     	}
 }
