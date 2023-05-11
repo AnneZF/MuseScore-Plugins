@@ -36,6 +36,7 @@ MuseScore {
 				curScore.endCmd();	
 			}
 		}
+		(typeof(quit) === 'undefined' ? Qt.quit : quit)();
 	}
 	
 	function clearMarkings(tick) {
@@ -125,10 +126,10 @@ MuseScore {
 			var output = "-" + intMap[interval + 8];			
 		}
 		switch (mode) {
-			case 0:	if (!(output === "U" || output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
+			case 0:	if (!(output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
 				output = "<b>" + output + "</b>";
 				break;
-			case 1:	if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
+			case 1:	if (!(output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
 				output = "<b>" + output + "</b>";
 				break;
 			default:	message("Code Error", "Mode Input Error.\nPermitted Modes:\nmode 0: melodic;\tmode 1: harmonic;");
