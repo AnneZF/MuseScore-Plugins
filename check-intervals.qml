@@ -25,20 +25,16 @@ MuseScore {
 			message("Error", "No score open.\nThis plugin requires an open score to run.\n");
 		}
 		else {
-			applyIntervals();
-		}
-	}
-	
-	function applyIntervals() {
-		var selection = getSelection();
-		if (!selection) {
-			message("Error", "getSelection() failed.");
-		}
-		else {			
-			curScore.startCmd();
-			clearMarkings(selection.startTick);
-			analyse(selection);
-			curScore.endCmd();	
+			var selection = getSelection();
+			if (!selection) {
+				message("Error", "getSelection() failed.");
+			}
+			else {			
+				curScore.startCmd();
+				clearMarkings(selection.startTick);
+				analyse(selection);
+				curScore.endCmd();	
+			}
 		}
 	}
 	
@@ -46,7 +42,10 @@ MuseScore {
 		if (curScore) {
 			if (curScore.selection && curScore.selection.elements) {
 				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
-					if ((curScore.selection.elements[eCount].type === Element.FINGERING || curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT || curScore.selection.elements[eCount].type === Element.STAFF_TEXT) && curScore.selection.elements[eCount].parent.parent.parent.tick != tick)
+					if ((	curScore.selection.elements[eCount].type === Element.FINGERING || 
+							curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT || 
+							curScore.selection.elements[eCount].type === Element.STAFF_TEXT) && 
+							curScore.selection.elements[eCount].parent.parent.parent.tick != tick) //text -> note -> chord ->segment
 						removeElement(curScore.selection.elements[eCount]);
 				}
 			}
@@ -54,7 +53,7 @@ MuseScore {
 	}
 	
 	function analyse(selection) {		
-		selection.cursor.rewind(1);
+		selection.cursor.rewind(1); //SELECTION_START does not work :(
 		var notes = new Array(selection.endTrack);
 		for (var track = selection.startTrack; track < selection.endTrack; track++) notes[track] = null;
 		var segment = selection.cursor.segment;
@@ -64,7 +63,7 @@ MuseScore {
 				var element = segment.elementAt(track);
 				if (element) {
 					if (element.type === Element.CHORD) {
-						if (element.notes.length > 1) message("Error", "Only one note analysed at track " + track + ", tick " + segment.tick);
+						if (element.notes.length > 1) message("Warning", "Multiple notes found.\nOnly one note has been analysed at track " + track + ", tick " + segment.tick);
 						if (notes[track] != null) {
 							var text = newElement(Element.FINGERING);
 							text.visible = false;
@@ -108,19 +107,19 @@ MuseScore {
 					firstBass = false;			
 				}
 			}			
-			while (segment.next.tick == segment.next.next.tick) segment = segment.next;
+			while (segment.next.next && segment.next.tick === segment.next.next.tick) segment = segment.next;
 			segment = segment.next;
 		}
 	}
 	
-	function returnInterval(note1, note2, mode) {
+	function returnInterval(note1, note2, mode) {	//rewrite to make more concise
+		if (note1.pitch === note2.pitch && note1.tpc === note2.tpc) return "U";
 		if (note2.pitch > note1.pitch) {
 			var interval = note2.tpc - note1.tpc;
-			if (interval < -8 || interval > 12) return "<b>!</b>"; //rewrite
+			if (interval < -8 || interval > 12) return "<b>!</b>";
 			var output = intMap[interval + 8];
 		}
 		else {
-			if (note2.pitch == note1.pitch && note2.tpc == note1.tpc) return "U";
 			var interval = note1.tpc - note2.tpc;
 			if (interval < -8 || interval > 12) return "<b>!</b>";
 			var output = "-" + intMap[interval + 8];			
@@ -132,7 +131,7 @@ MuseScore {
 			case 1:	if (!(output === "U" || output === "P8" || output === "-P8" || output === "P5" || output === "-P5" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "m6" || output === "M6" || output === "-m6" || output === "-M6"))
 				output = "<b>" + output + "</b>";
 				break;
-			default:	message("Error", "Mode Input Error.\nPermitted Modes:\nmode 0: melodic;\tmode 1: harmonic;");
+			default:	message("Code Error", "Mode Input Error.\nPermitted Modes:\nmode 0: melodic;\tmode 1: harmonic;");
 				return;
 		}
 		return output;
@@ -142,13 +141,11 @@ MuseScore {
 
 	function getSelection() {
 		var cursor = curScore.newCursor();
-		cursor.rewind(1);
+		cursor.rewind(1); //SELECTION_START does not work :(
 		var selection = {
 			cursor: cursor,
 			startTick: null,
 			endTick: null,
-			startStaff: 0,
-			endStaff: curScore.nstaves,
 			startTrack: 0,
 			endTrack: curScore.nstaves * 4
 		}		
@@ -159,12 +156,12 @@ MuseScore {
 		}
 		else {
 			selection.startTick = cursor.segment.parent.firstSegment.tick;
-			cursor.rewind(2);
-			if (cursor.tick === 0) selection.endTick = curScore.lastSegment.prev.tick + 1;
+			cursor.rewind(2); //SELECTION_END does work, but to retain conistency
+			if (cursor.tick === 0) selection.endTick = curScore.lastSegment.prev.tick + 1; //actual last segment contains double barline, always possible to skip last segment.
 			else selection.endTick = cursor.tick;
 		}		
 		curScore.startCmd();
-		curScore.selection.selectRange(selection.startTick, selection.endTick, selection.startStaff, selection.endStaff);
+		curScore.selection.selectRange(selection.startTick, selection.endTick, 0, curScore.nstaves);
 		curScore.endCmd();
 		return selection;
 	}
