@@ -38,16 +38,16 @@ MuseScore {
 		}
 		(typeof(quit) === 'undefined' ? Qt.quit : quit)();
 	}
+
 	
 	function clearMarkings(tick) {
 		if (curScore) {
 			if (curScore.selection && curScore.selection.elements) {
-				for (var eCount = 0; eCount < curScore.selection.elements.length; eCount++) {
-					if ((	curScore.selection.elements[eCount].type === Element.FINGERING || 
-							curScore.selection.elements[eCount].type === Element.SYSTEM_TEXT || 
-							curScore.selection.elements[eCount].type === Element.STAFF_TEXT) && 
-							curScore.selection.elements[eCount].parent.parent.parent.tick != tick) //text -> note -> chord ->segment
-						removeElement(curScore.selection.elements[eCount]);
+				for (var e in curScore.selection.elements) { //e runs from 0 to the length of elements. does not return element itself. 
+					if ((	curScore.selection.elements[e].type === Element.FINGERING || 
+						curScore.selection.elements[e].type === Element.SYSTEM_TEXT) && 
+						curScore.selection.elements[e].parent.parent.parent.tick != tick) //text -> note -> chord -> segment
+						removeElement(curScore.selection.elements[e]);
 				}
 			}
 		}
@@ -64,7 +64,7 @@ MuseScore {
 				var element = segment.elementAt(track);
 				if (element) {
 					if (element.type === Element.CHORD) {
-						if (element.notes.length > 1) message("Warning", "Multiple notes found.\nOnly one note has been analysed at track " + track + ", tick " + segment.tick);
+						if (element.notes.length > 1) message("Warning", "Multiple notes found.\nOnly lowest note has been analysed at staff " + (track / 4 + 1) + ", tick " + segment.tick);
 						if (notes[track] != null) {
 							var text = newElement(Element.FINGERING);
 							text.visible = false;
@@ -83,8 +83,8 @@ MuseScore {
 					}
 				}
 			}
-			var firstBass = true;
-			var has5 = false;
+			var firstBass = true; // to make invisible other combinations (reduce clutter?). setting "show invisible" keeps these visible.
+			var has5 = false; // to check for 6/5 chords
 			var has6 = false;
 			for (var track1 = selection.endTrack; track1 > selection.startTrack; track1--){
 				if (notes[track1] != null) {
@@ -113,18 +113,12 @@ MuseScore {
 		}
 	}
 	
-	function returnInterval(note1, note2, mode) {	//rewrite to make more concise
+	function returnInterval(note1, note2, mode) {
 		if (note1.pitch === note2.pitch && note1.tpc === note2.tpc) return "U";
-		if (note2.pitch > note1.pitch) {
-			var interval = note2.tpc - note1.tpc;
-			if (interval < -8 || interval > 12) return "<b>!</b>";
-			var output = intMap[interval + 8];
-		}
-		else {
-			var interval = note1.tpc - note2.tpc;
-			if (interval < -8 || interval > 12) return "<b>!</b>";
-			var output = "-" + intMap[interval + 8];			
-		}
+		var interval = note2.tpc - note1.tpc;
+		if (interval < -12 || interval > -12) return "<b>X</b>";
+		if (note2.pitch > note1.pitch) var output = intMap[interval + 12];
+		else var output = '-' + intMap[12 - interval];
 		switch (mode) {
 			case 0:	if (!(output === "P8" || output === "-P8" || output === "m2" || output === "M2" || output === "-m2" || output === "-M2" || output === "m3" || output === "M3" || output === "-m3" || output === "-M3" || output === "P4" || output === "-P4" || output === "P5" || output === "-P5" || output === "m6"))
 				output = "<b>" + output + "</b>";
@@ -138,7 +132,7 @@ MuseScore {
 		return output;
 	}
 	
-	property var intMap: ["d4", "d1", "d5", "m2", "m6", "m3", "m7", "P4", "P8", "P5", "M2", "M6", "M3", "M7", "A4", "A1", "A5", "A2", "A6", "A3", "A7"];
+	property var intMap: ["d2", "d6", "d3", "d7", "d4", "d1", "d5", "m2", "m6", "m3", "m7", "P4", "P8", "P5", "M2", "M6", "M3", "M7", "A4", "A1", "A5", "A2", "A6", "A3", "A7"];
 
 	function getSelection() {
 		var cursor = curScore.newCursor();
@@ -153,12 +147,13 @@ MuseScore {
 		if (!cursor.segment) {
 			message("Warning", "No selection.\nApplied to whole score.");
 			selection.startTick = 0;
-			selection.endTick = curScore.lastSegment.prev.tick + 1;
+			selection.endTick = curScore.lastSegment.tick + 1;
 		}
 		else {
 			selection.startTick = cursor.segment.parent.firstSegment.tick;
 			cursor.rewind(2); //SELECTION_END does work, but to retain conistency
-			if (cursor.tick === 0) selection.endTick = curScore.lastSegment.prev.tick + 1; //actual last segment contains double barline, always possible to skip last segment.
+			console.log(cursor.tick);
+			if (cursor.tick === 0) selection.endTick = curScore.lastSegment.tick + 1; //actual last segment contains double barline, always possible to skip last segment? clear markings fail if excluded. but +1 stops program from completing...
 			else selection.endTick = cursor.tick;
 		}		
 		curScore.startCmd();
@@ -169,7 +164,7 @@ MuseScore {
 	
 	function message(title, mText) {
 		messageDialog.text = qsTr(mText);
-		messageDialog.title = title;
+		messageDialog.title = qsTr(title);
 		messageDialog.open();
 	}
     	
